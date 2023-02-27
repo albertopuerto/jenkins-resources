@@ -1,0 +1,97 @@
+#1 Bajamos la última versión de la imagen de jenkins
+docker pull jenkins/jenkins
+
+#2 Visualizar imagen descargada
+docker images
+
+#3 movemos la imagen a un folder
+mkdir jenkins
+
+#4 damos permisos a jenkins para escribir en el folder (el proceso de jenkins es el id 1000)
+chown 1000 jenkins
+
+#5 creamos archivo en la carpeta jenkins llamado docker-compose.yml
+cd jenkins
+vi/nano docker-compose.yml
+
+#6 editamos el yml creado: es para definir el archivo de docker que levante el servicio de jenkins
+    version: '3'
+    services:
+        jenkins:
+            //nombre del proceso > coincide con el pull que hemos hecho antes
+            container_name: jenkins
+            image: jenkins/jenkins
+            ports:
+                //maquina:contenedor
+                - "8080:8080" 
+            volumes:
+                //en nuestra carpeta actual creamos /jenkins_home y lo guardamos en esa var, será data que utilizaremos
+                - $PWD/jenkins_home:/var/jenkins_home
+            networks:
+                - net 
+    networks:
+        net:
+
+COPYPASTE de yml sin comentarios ni tabs:
+
+version: '3'
+services:
+    jenkins:
+        container_name: jenkins
+        image: jenkins/jenkins
+        ports:
+            - "8080:8080" 
+        volumes:
+            - $PWD/jenkins_home:/var/jenkins_home
+        networks:
+            - net 
+networks:
+    net:
+
+#7 creamos carpeta jenkins_home definido en el yml de antes
+mkdir jenkins_home
+
+#8 ejecutamos el comando para leer el archivo y ejecutarlo -> levantará el proceso/contenedor
+docker-compose up -d
+
+#9 al ejecutar docker ps , veremos ahora el proceso jenkins/jenkins, con name jenkins corriendo, se trata de un contenedor
+
+#10 ver trazas del proceso:
+docker logs -f jenkins
+
+#11 ver localhost -> firefox -> localhost:8080
+nos aparecerá la primera vez el texto de bienvenida de jenkins y nos pide la pass de initialAdminPassword::
+
+    Unlock Jenkins
+
+    To ensure Jenkins is securely set up by the administrator, a password has been written to the log (not sure where to find it?) and this file on the server:
+
+    /var/jenkins_home/secrets/initialAdminPassword
+
+    Please copy the password from either location and paste it below.
+
+#Para acceder a la pass: 
+#OPCION 1: en la consola:
+ll
+#vemos la carpeta jenkins_home
+cat jenkins_home/secrets/initialAdminPassword
+.> e5dd33024faa4bd6aa59830722f3888c
+
+#OPCION 2: ejecutando el proceso de jenkins y cat de la variable de jenkins == carpeta anterior, mapped en yml - volumes
+docker exec -ti jenkins bash
+cat /var/jenkins_home/secrets/initialAdminPassword
+-> output e5dd33024faa4bd6aa59830722f3888c
+exit
+
+#12 Bienvenido a jenkins: podremos instalar los plugins sugeridos, o seleccionarlos...etc y esperamos a la instalación
+
+#13 create first admin user:
+ejemplo: user/pass admin / 1234 ... 
+
+#14 instance configuration:
+Jenkins URL: de momento lo dejamos tal y como está, http://localhost:8080/ lo cambiaremos más adelante
+
+#15 Jenkins is ready!
+
+
+

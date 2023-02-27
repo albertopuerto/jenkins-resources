@@ -1,0 +1,191 @@
+#### 3.2 Primer Job ####
+Jenkins está preparado para correr en máquinas remotas
+
+Hay dos formas de ejecutar los jobs:
+a) Remoto
+b) local
+
+Inicialmente lo ejecutaremos en local, en el mismo contenedor
+
+Ejemplo:
+1.- Crear job de estilo libre
+2.- Title, estilo libre, descripción...
+3.- De momento sin disparadores, entorno... 
+4.- Ejecutar => añadir un nuevo paso:
+    - Lo más común es ejecutar nueva linea de comandos (shell)
+    - Seleccionando comando shell, 
+        * en la terminal:
+            docker ps
+            docker exec -ti jenkins bash 
+                => entramos al proceso de jenkins, en lugar de alberto@fedora id estamos logados como jenkins@...
+                => estamos en una shell/terminal de jenkins (ej. echo hola, date, etc)
+        * en ejecutar linea de comandos en jenkins, ponemos por ej:
+            echo "Hola, mundo"
+        * Guardamos
+5.- Construir ahora => se ejecuta y va al historial de tareas
+6.- En el historial de tareas podemos ver el console output por ejemplo (entre otras cosas)
+    - Ejemplo del comando anterior:
+        Salida de consola
+
+                Started by user admin
+                Running as SYSTEM
+                Building in workspace /var/jenkins_home/workspace/Test
+                [Test] $ /bin/sh -xe /tmp/jenkins4830534508626548069.sh
+                + echo Hola, mundo
+                Hola, mundo
+                Finished: SUCCESS
+
+7.- Explicación: por detrás jenkins ha creado un script en bash con el contenido que introdujimos y lo ejecuta
+
+#### 3.3 Primer Job Continuacion ####
+1.- En el panel de control, ingresamos en el job/proyecto creado anteriormente como Test
+2.- Opción de Configurar proyecto
+    - Shell:
+        *Editamos:
+            echo "La fecha y hora es $(date)"
+    - Si guardamos y construimos:
+        Started by user admin
+        Running as SYSTEM
+        Building in workspace /var/jenkins_home/workspace/Test
+        [Test] $ /bin/sh -xe /tmp/jenkins5116918777716567263.sh
+        + date
+        + echo La fecha y hora es Mon 17 May 2021 08:04:40 PM UTC
+        La fecha y hora es Mon 17 May 2021 08:04:40 PM UTC
+        Finished: SUCCESS
+
+3.- Redirigir el output del job:
+    - Crear variables de entorno, en la shell y guardarlo en el fichero tmp/nombre:
+        Comando:
+            NOMBRE="Alberto"
+            echo "Hola, $NOMBRE" > /tmp/nombre
+        
+        Tras ejecutarlo, en la terminal, entramos en docker: 
+            - docker exec -ti jenkins bash
+        y miramos en la ruta seleccionada que se ha guardado el archivo: 
+            - cat /tmp/nombre
+
+        otro ejemplo con $(date +%F) fecha formateada ej: 2021-07-12, al final todo lo que podamos usar en bash lo podemos tirar en jenkins :
+        Comando:
+            NOMBRE="Alberto"
+            echo "Hola $NOMBRE. La fecha es $(date +%F) > /tmp/nombre
+
+4.- Crea un script con tu primer job - Ejecutar primer script
+    cd jenkins
+    ll si queremos ver permisos
+    no tenemos aun el script, lo creamos:
+    - vi script.sh
+
+        file:
+        #!/bin/bash
+        echo "Hola, $NOMBRE $APELLIDO" 
+        // --> son variables de entorno que aún no están definidos, el sh script hasta aquí sólo escribirá "Hola, "
+        //salimos y guardamos con esc + :x 
+
+    - sh script.sh
+        "Hola,"
+    
+    - chmod +x script.sh para dar permisos de ejecución al fichero y lo guardamos en el contenedor docker
+        a) docker cp (para copiar archivos) del archivo a la carpeta opt
+            docker cp script.sh jenkins:/opt
+        b) ingresamos al contenedor docker exec -ti jenkins bash
+            cd opt + ls y vemos el fichero
+            lo ejecutamos:
+            ./script.sh
+
+            y nos devuelve "Hola," igual que en fichero anterior en local
+
+    - Pasar las variables desde Jenkins:
+        Vamos a configurar el job, bajamos a shell/comando y copiamos la ruta absoluta del fichero a ejecutar:
+
+
+        Shell:
+            NOMBRE="Alberto"
+            APELLIDO="Puerto"
+            /opt/script.sh
+        
+        output: "Hola,"
+        La ejecución de declaración de variables, es paralela a la de los ficheros que se invocan, hay que pasar los params
+        Son variables efímeras, el script no las ve automáticamente
+        Para pasarle los argumentos:
+            1) en la shell de jenkins
+
+            NOMBRE="Alberto"
+            APELLIDO="Puerto"
+            /opt/script.sh $NOMBRE $APELLIDO
+
+            2) prepararlo en el script.sh - en local vi script.sh
+                #!/bin/bash
+                NOMBRE=$1
+                APELLIDO=$2
+                echo "Hola, $NOMBRE $APELLIDO"
+            3) Copiamos el nuevo file a docker
+                docker cp script.sh jenkins:/opt
+
+            $) Run del job y ya funciona correctamente
+            Output:
+            "Hola, Alberto Puerto"
+
+5.- Agregar parámetros al job
+    En lugar de pasarlos desde la shell de jenkins, se pueden utilizar los params de jenkins del sistema
+
+    Al crear un proyecto, hay una opción que especifica:
+    "Esta ejecución debe parametrizarse"
+        Añadir params: type.. String etc
+        En el ejemplo anterior
+        Params:
+            String - NAME - valor por defecto Alberto
+            String - LASTNAME - valor por defecto Puerto
+        
+        Shell:
+            echo "Hola, $NAME"
+
+        Build with parameters:
+            Te da la opción de cambiar el valor por defecto de los params, por ejemplo, Tom
+
+            > "Hola, Tom"
+
+    - Tipos de params
+        - String: NAME - Tom
+
+        - Elección (lista tipo dropdown): APELLIDO
+            Lista de strings, ejemplo:
+                Gonzalez
+                Lopez
+                Sanchez
+    
+            Los params tomarán el valor de la ejecución del comando en ese contexto
+
+        - Boolean: MOSTRAR
+            Valor por defecto, true or false
+
+    Montamos un nuevo job de jenkins (ej test-params) con estas variables
+    Modificamos el shell:
+        #!/bin/bash
+        NOMBRE=$1
+        APELLIDO=$2
+        MOSTRAR=$3
+
+        if [ "$MOSTRAR" = "true"]; then
+            echo "Hola, $NOMBRE $APELLIDO"
+        else
+            echo "Si quieres ver el nombre, selecciona la casilla de MOSTRAR"
+        fi
+
+    esc + :x (guardamos y salimos)
+    docker cp script.sh jenkins:/opt (copiamos en docker)
+
+    en la terminal de jenkins ejecutamos el script y le pasamos los params definidos en jenkins
+        /opt/script.sh $NOMBRE $APELLIDO $MOSTRAR
+    
+    y ya podemos ejecutar y la salida saldrá correctamente según el booleano que seleccionemos
+
+
+        
+    
+        
+
+
+
+
+
+

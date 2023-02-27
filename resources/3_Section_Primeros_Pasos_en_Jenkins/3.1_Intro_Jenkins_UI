@@ -1,0 +1,16 @@
+En el dashboard de jenkins podremos ver diversas secciones:
+
+#Jobs o tareas/proyectos
+Son los pasos que definimos para automatizar nuestras tareas
+
+#Personas / Users
+Users capaces de logarse en el sistema
+Se puede habilitar o deshabilitar la auth
+
+#Historial de trabajos
+Cada job tiene un histórico, se reflejan aquí
+
+#Administrar Jenkins - Setup
+Setup del sistema, diversas opciones (config, auth, credentials, plugins, logs, etc..)
+
+

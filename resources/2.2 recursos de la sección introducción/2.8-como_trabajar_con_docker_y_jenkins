@@ -1,0 +1,27 @@
+#1 ver servicios en docker:
+docker ps
+
+#2 detener el servicio
+accedemos a la carpeta
+cd jenkins/
+ll //ver archivos
+docker-compose stop //pararlo
+//ó...
+docker-compose down //borra el servicio, aunque puede volver a lanzarse ya que lo tenemos en jenkins_home
+ls jenkins_home/ 
+
+#3 iniciar
+docker-compose start //sólo si estaba en stop
+docker-compose up -d //si estaba down, volvemos a levantarlo (tambien sirve si esta en stop, best option)
+
+# Restart
+docker-compose Restart
+
+# Logs
+docker-compose logs -f 
+
+#
+
+
+
+
